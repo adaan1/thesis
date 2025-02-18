@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Experiment</title>
+    <script src="jspsych/jspsych.js"></script>
+    <script src="jspsych/plugin-video-button-response.js"></script>
+    <script src="jspsych/plugin-html-button-response.js"></script>
+
+    <link href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body></body>
+  <script>
+    const jsPsych = initJsPsych();
+
+    // Function to get 24 random video paths
+    function randomChoice(options) {
+        const randomIndex = Math.floor(Math.random() * options.length);
+        return options[randomIndex];
+    }
+
+    function getRandomVideoPaths() {
+
+        const videoPaths = [];
+
+        for (let i = 0; i < 24; i++) {
+
+            const mainFolders = ["br-ifsp-202408", "dk-itu-202407"];
+            const selectedFolder = randomChoice(mainFolders);
+
+            let subfolders;
+            if (selectedFolder === "br-ifsp-202408") {
+                subfolders = Array.from({ length: 105 }, (_, i) => `TC24${String(i + 201).padStart(3, '0')}`);
+                const excludedSubfolders = new Set(["TC24288", "TC24301"]);
+                subfolders = subfolders.filter(subfolder => !excludedSubfolders.has(subfolder)); 
+
+            } else {
+                subfolders = Array.from({ length: 102 }, (_, i) => `p_${String(i).padStart(3, '0')}`);
+            }
+            let selectedSubfolder = randomChoice(subfolders);
+
+            // Step 3: Select a video file
+            const videoFiles = ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"];
+            const selectedVideo = randomChoice(videoFiles);
+
+            do {
+                selectedSubfolder = randomChoice(subfolders);
+            } while (["TC24288", "TC24301"].includes(selectedSubfolder));
+
+            // Final selected video path
+            const selectedPath = `video/${selectedFolder}/${selectedSubfolder}/${selectedVideo}.mp4`;
+
+            videoPaths.push(selectedPath);
+        }
+        return videoPaths;
+    }
+
+    // Get the 24 random videos
+    const videoFiles = getRandomVideoPaths();
+
+    // Debug: Log the video paths to ensure they are correct
+    console.log("Video paths:", videoFiles);
+
+    const trials = videoFiles.map((videoPath) => {
+        return {
+            type: jsPsychVideoButtonResponse,
+            stimulus: [videoPath],
+            choices: ['Volume up', 'Volume down', 'Mute', 'Unmute', 'Turn camera off', 'Turn camera on', 'Ask a question', 'End call'],
+            prompt: "<p>Which gesture is shown in the video?</p>",
+            response_allowed_while_playing: true,
+            response_ends_trial: true,
+            height: 720,
+            width: 1280,
+            on_load: function() {
+                var video = document.querySelector('video');
+                video.loop = true;
+                video.autoplay = true;
+                video.muted = true;
+            },
+            on_finish: function(data) {
+                console.log('Video finished:', data);  // Logs when a trial is finished
+            }
+        };
+    });
+
+
+
+
+    // Define the timeline
+    var timeline = [];
+
+    // Add the trials to the timeline
+    timeline.push(...trials);
+
+    // Run the experiment
+    jsPsych.run(timeline).then(function() {
+        // Get the data in CSV format
+        const csvData = jsPsych.data.get().csv();
+
+        // Now download the data as a CSV file
+        var hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csvData);
+        hiddenElement.target = '_blank';
+        hiddenElement.download = 'experiment_results.csv';
+        hiddenElement.click();
+    });
+
+
+  </script>
+</html>
